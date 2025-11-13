@@ -8,8 +8,6 @@ import (
 	"log"
 	"net/http"
 	"time"
-
-	"github.com/pquerna/cachecontrol"
 )
 
 // Config configures the middleware.
@@ -132,24 +130,7 @@ func (m *cache) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (m *cache) cacheable(r *http.Request, w http.ResponseWriter, status int) (time.Duration, bool) {
-	reasons, expireBy, err := cachecontrol.CachableResponseWriter(r, status, w, cachecontrol.Options{})
-	if err != nil || len(reasons) > 0 {
-		return 0, false
-	}
-
-	if expireBy.IsZero() && m.cfg.Force {
-		// no cache-related headers, use default expiry
-		return time.Duration(m.cfg.MaxExpiry) * time.Second, true
-	}
-
-	expiry := time.Until(expireBy)
-	maxExpiry := time.Duration(m.cfg.MaxExpiry) * time.Second
-
-	if maxExpiry < expiry {
-		expiry = maxExpiry
-	}
-
-	return expiry, true
+	return time.Duration(m.cfg.MaxExpiry) * time.Second, true
 }
 
 func cacheKey(r *http.Request) string {
