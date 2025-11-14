@@ -1,4 +1,4 @@
-module github.com/gfreezy/plugin-simplecache
+module github.com/gfreezy/plugin-simpleforcecache
 
 go 1.15
 

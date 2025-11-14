@@ -1,7 +1,7 @@
-displayName: Simple Cache (Fork)
+displayName: Simple Force Cache
 summary: Simple cache plugin middleware caches responses on disk.
 type: middleware
-import: github.com/gfreezy/plugin-simplecache
+import: github.com/gfreezy/plugin-simpleforcecache
 compatibility: TODO
 testData:
   path: /tmp

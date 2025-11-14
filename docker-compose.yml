@@ -7,13 +7,13 @@ services:
       - "--api.insecure=true"
       - "--providers.docker=true"
       - "--entrypoints.web.address=:80"
-      - "--experimental.localPlugins.cache.modulename=github.com/iamolegga/plugin-simplecache"
+      - "--experimental.localPlugins.cache.modulename=github.com/gfreezy/plugin-simpleforcecache"
     ports:
       - "80:80"
       - "8080:8080"
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
-      - ".:/plugins-local/src/github.com/iamolegga/plugin-simplecache"
+      - ".:/plugins-local/src/github.com/gfreezy/plugin-simpleforcecache"
 
   hit_counter:
     image: node:20-alpine

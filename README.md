@@ -11,7 +11,7 @@ Static:
 
 ```toml
 [experimental.plugins.cache]
-  modulename = "github.com/iamolegga/plugin-simplecache"
+  modulename = "github.com/gfreezy/plugin-simpleforcecache"
   version = "v0.4.0"
 ```
 
@@ -19,7 +19,7 @@ Static:
 experimental:
   plugins:
     cache:
-      moduleName: "github.com/iamolegga/plugin-simplecache"
+      moduleName: "github.com/gfreezy/plugin-simpleforcecache"
       version: "v0.3.0"
 ```
 
@@ -75,6 +75,6 @@ This determines if responses without special cache-related headers should be
 cached. If this is set to `true`, responses without special headers will be
 cached for the `maxExpiry` cache time. If this is set to `false`, responses
 without special cache-related headers will not be cached (as in the 
-[original plugin](https://github.com/traefik/plugin-simplecache)). Works only
+[original plugin](https://github.com/traefik/plugin-simpleforcecache)). Works only
 if [cachecontrol](https://github.com/pquerna/cachecontrol) unable to find any
 reason not to cache the response (due to headers, method, status code, etc.).
