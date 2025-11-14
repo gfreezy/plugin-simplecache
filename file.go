@@ -29,7 +29,7 @@ func newFileCache(path string, vacuum time.Duration) (*fileCache, error) {
 			return nil, fmt.Errorf("invalid cache path: %w", err)
 		}
 
-		if err = os.MkdirAll(path, 0700); err != nil {
+		if err = os.MkdirAll(path, 0o700); err != nil {
 			return nil, fmt.Errorf("error creating cache path: %w", err)
 		}
 
@@ -124,11 +124,11 @@ func (c *fileCache) Set(key string, val []byte, expiry time.Duration) error {
 	defer mu.Unlock()
 
 	p := keyPath(c.path, key)
-	if err := os.MkdirAll(filepath.Dir(p), 0700); err != nil {
+	if err := os.MkdirAll(filepath.Dir(p), 0o700); err != nil {
 		return fmt.Errorf("error creating file path: %w", err)
 	}
 
-	f, err := os.OpenFile(filepath.Clean(p), os.O_RDWR|os.O_CREATE, 0600)
+	f, err := os.OpenFile(filepath.Clean(p), os.O_RDWR|os.O_CREATE, 0o600)
 	if err != nil {
 		return fmt.Errorf("error creating file: %w", err)
 	}

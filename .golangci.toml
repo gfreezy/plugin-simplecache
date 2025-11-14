@@ -1,61 +1,75 @@
-[run]
-  timeout = "3m"
-  skip-files = []
-  skip-dirs = []
-
-[linters-settings]
-
-  [linters-settings.govet]
-    check-shadowing = false
-
-  [linters-settings.golint]
-    min-confidence = 0.0
-
-  [linters-settings.gocyclo]
-    min-complexity = 12.0
-
-  [linters-settings.maligned]
-    suggest-new = true
-
-  [linters-settings.goconst]
-    min-len = 3.0
-    min-occurrences = 4.0
-
-  [linters-settings.misspell]
-    locale = "US"
-
-  [linters-settings.funlen]
-    lines = 60 # default 60
-    statements = 40 # default 40
+version = '2'
 
 [linters]
-  enable-all = true
-  disable = [
-    "golint", # deprecated
-    "scopelint", # deprecated
-    "interfacer", # deprecated
-    "maligned", # deprecated
-    "cyclop",
-    "bodyclose",
-    "goerr113",
-    "nlreturn",
-    "exhaustivestruct",
-    "testpackage",
-    "paralleltest",
-    "tparallel",
-    "gomnd",
-    "wrapcheck",
-  ]
+default = 'all'
+disable = [
+  'bodyclose',
+  'cyclop',
+  'err113',
+  'mnd',
+  'nlreturn',
+  'paralleltest',
+  'testpackage',
+  'tparallel',
+  'wrapcheck'
+]
+
+[linters.settings]
+[linters.settings.funlen]
+lines = 60
+statements = 40
+
+[linters.settings.goconst]
+min-len = 3
+min-occurrences = 4
+
+[linters.settings.gocyclo]
+min-complexity = 12
+
+[linters.settings.misspell]
+locale = 'US'
+
+[linters.exclusions]
+generated = 'lax'
+paths = [
+  'third_party$',
+  'builtin$',
+  'examples$'
+]
+
+[[linters.exclusions.rules]]
+linters = [
+  'funlen',
+  'goconst',
+  'godot',
+  'scopelint'
+]
+path = '(.+)_test.go'
+
+[[linters.exclusions.rules]]
+path = '(.+)\.go$'
+text = """
+don't use an underscore in package name"""
+
+[[linters.exclusions.rules]]
+path = '(.+)\.go$'
+text = 'ST1003: should not use underscores in package names'
 
 [issues]
-  exclude-use-default = false
-  max-per-linter = 0
-  max-same-issues = 0
-  exclude = [
-    "don't use an underscore in package name",
-    "ST1003: should not use underscores in package names"
-  ]
+max-same-issues = 0
 
- [[issues.exclude-rules]]
-    path = "(.+)_test.go"
-    linters = ["goconst", "funlen", "godot", "scopelint"]
+[formatters]
+enable = [
+  'gci',
+  'gofmt',
+  'gofumpt',
+  'goimports'
+]
+
+[formatters.exclusions]
+generated = 'lax'
+paths = [
+  'third_party$',
+  'builtin$',
+  'examples$'
+]
