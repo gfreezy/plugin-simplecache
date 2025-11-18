@@ -130,6 +130,10 @@ func (m *cache) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (m *cache) cacheable(r *http.Request, w http.ResponseWriter, status int) (time.Duration, bool) {
+	if status != 200 {
+		return 0, false
+	}
+
 	return time.Duration(m.cfg.MaxExpiry) * time.Second, true
 }
 
