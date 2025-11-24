@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"hash/crc32"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -104,7 +103,7 @@ func (c *fileCache) Get(key string) ([]byte, error) {
 		return nil, errCacheMiss
 	}
 
-	b, err := ioutil.ReadFile(filepath.Clean(p))
+	b, err := os.ReadFile(filepath.Clean(p))
 	if err != nil {
 		return nil, fmt.Errorf("error reading file %q: %w", p, err)
 	}

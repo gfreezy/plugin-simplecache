@@ -3,7 +3,6 @@ package plugin_simpleforcecache
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -294,7 +293,7 @@ func TestCache_HeaderCaseInsensitive(t *testing.T) {
 func createTempDir(tb testing.TB) string {
 	tb.Helper()
 
-	dir, err := ioutil.TempDir("./", "example")
+	dir, err := os.MkdirTemp("./", "example")
 	if err != nil {
 		tb.Fatal(err)
 	}
