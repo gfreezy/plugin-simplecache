@@ -5,3 +5,10 @@ import: github.com/gfreezy/plugin-simpleforcecache
 compatibility: TODO
 testData:
   path: /tmp
+  maxExpiry: 300
+  cleanup: 600
+  addStatusHeader: true
+  cacheHeaders:
+    - "Accept-Language"
+  cachePathPrefixes:
+    - "/api/"
