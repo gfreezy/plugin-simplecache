@@ -166,7 +166,17 @@ func keyHash(key string) [4]byte {
 
 func keyPath(path, key string) string {
 	h := keyHash(key)
-	key = strings.NewReplacer("/", "-", ":", "_").Replace(key)
+	// Replace characters that are invalid in Windows filenames
+	key = strings.NewReplacer(
+		"/", "-",
+		":", "_",
+		"|", "_",
+		"<", "_",
+		">", "_",
+		"\"", "_",
+		"?", "_",
+		"*", "_",
+	).Replace(key)
 
 	return filepath.Join(
 		path,
