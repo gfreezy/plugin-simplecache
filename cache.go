@@ -7,16 +7,19 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 )
 
 // Config configures the middleware.
 type Config struct {
-	Path            string `json:"path" yaml:"path" toml:"path"`
-	MaxExpiry       int    `json:"maxExpiry" yaml:"maxExpiry" toml:"maxExpiry"`
-	Cleanup         int    `json:"cleanup" yaml:"cleanup" toml:"cleanup"`
-	AddStatusHeader bool   `json:"addStatusHeader" yaml:"addStatusHeader" toml:"addStatusHeader"`
-	Force           bool   `json:"force" yaml:"force" toml:"force"`
+	Path              string   `json:"path" yaml:"path" toml:"path"`
+	MaxExpiry         int      `json:"maxExpiry" yaml:"maxExpiry" toml:"maxExpiry"`
+	Cleanup           int      `json:"cleanup" yaml:"cleanup" toml:"cleanup"`
+	AddStatusHeader   bool     `json:"addStatusHeader" yaml:"addStatusHeader" toml:"addStatusHeader"`
+	Force             bool     `json:"force" yaml:"force" toml:"force"`
+	CacheHeaders      []string `json:"cacheHeaders" yaml:"cacheHeaders" toml:"cacheHeaders"`
+	CachePathPrefixes []string `json:"cachePathPrefixes" yaml:"cachePathPrefixes" toml:"cachePathPrefixes"`
 }
 
 // CreateConfig returns a config instance.
@@ -77,7 +80,7 @@ type cacheData struct {
 func (m *cache) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	cs := cacheMissStatus
 
-	key := cacheKey(r)
+	key := cacheKey(r, m.cfg.CacheHeaders)
 
 	b, err := m.cache.Get(key)
 	if err == nil {
@@ -134,11 +137,51 @@ func (m *cache) cacheable(r *http.Request, w http.ResponseWriter, status int) (t
 		return 0, false
 	}
 
+	// Check if path matches any configured prefix (case-insensitive)
+	if !m.matchesPathPrefix(r.URL.Path) {
+		return 0, false
+	}
+
 	return time.Duration(m.cfg.MaxExpiry) * time.Second, true
 }
 
-func cacheKey(r *http.Request) string {
-	return r.Method + r.Host + r.URL.Path
+func (m *cache) matchesPathPrefix(path string) bool {
+	// If no prefixes configured, cache all paths
+	if len(m.cfg.CachePathPrefixes) == 0 {
+		return true
+	}
+
+	lowerPath := strings.ToLower(path)
+	for _, prefix := range m.cfg.CachePathPrefixes {
+		if strings.HasPrefix(lowerPath, strings.ToLower(prefix)) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func cacheKey(r *http.Request, cacheHeaders []string) string {
+	var builder strings.Builder
+
+	builder.WriteString(r.Method)
+	builder.WriteString(r.Host)
+	builder.WriteString(r.URL.Path)
+
+	// Add configured headers to the cache key (case-insensitive)
+	for _, headerName := range cacheHeaders {
+		// Canonicalize header name to ensure case-insensitive matching
+		canonicalName := http.CanonicalHeaderKey(headerName)
+		headerValue := r.Header.Get(canonicalName)
+		if headerValue != "" {
+			builder.WriteString("|")
+			builder.WriteString(canonicalName)
+			builder.WriteString(":")
+			builder.WriteString(headerValue)
+		}
+	}
+
+	return builder.String()
 }
 
 type responseWriter struct {
