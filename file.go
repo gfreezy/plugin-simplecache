@@ -1,4 +1,4 @@
-// Package plugin_simpleforcecache is a plugin to cache responses to disk.
+//nolint:noinlineerr,varnamelen // inline error handling and short names are acceptable
 package plugin_simpleforcecache
 
 import (
@@ -44,7 +44,7 @@ func newFileCache(path string, vacuum time.Duration) (*fileCache, error) {
 
 	fc := &fileCache{
 		path: path,
-		pm:   &pathMutex{lock: map[string]*fileLock{}},
+		pm:   &pathMutex{lock: map[string]*fileLock{}}, //nolint:exhaustruct // mu is zero value
 	}
 
 	go fc.vacuum(vacuum)
@@ -52,6 +52,7 @@ func newFileCache(path string, vacuum time.Duration) (*fileCache, error) {
 	return fc, nil
 }
 
+//nolint:funcorder // vacuum is called during initialization
 func (c *fileCache) vacuum(interval time.Duration) {
 	timer := time.NewTicker(interval)
 	defer timer.Stop()
@@ -67,27 +68,32 @@ func (c *fileCache) vacuum(interval time.Duration) {
 
 			mu := c.pm.MutexAt(filepath.Base(path))
 			mu.Lock()
+
 			defer mu.Unlock()
 
 			// Get the expiry.
 			var t [8]byte
+
 			f, err := os.Open(filepath.Clean(path))
 			if err != nil {
 				// Just skip the file in this case.
-				return nil // nolint:nilerr // skip
+				return nil
 			}
+
 			if n, err := f.Read(t[:]); err != nil && n != 8 {
 				return nil
 			}
+
 			_ = f.Close()
 
-			expires := time.Unix(int64(binary.LittleEndian.Uint64(t[:])), 0)
+			expires := time.Unix(int64(binary.LittleEndian.Uint64(t[:])), 0) //nolint:gosec // safe conversion
 			if !expires.Before(time.Now()) {
 				return nil
 			}
 
 			// Delete the file.
 			_ = os.Remove(path)
+
 			return nil
 		})
 	}
@@ -96,6 +102,7 @@ func (c *fileCache) vacuum(interval time.Duration) {
 func (c *fileCache) Get(key string) ([]byte, error) {
 	mu := c.pm.MutexAt(key)
 	mu.RLock()
+
 	defer mu.RUnlock()
 
 	p := keyPath(c.path, key)
@@ -108,7 +115,7 @@ func (c *fileCache) Get(key string) ([]byte, error) {
 		return nil, fmt.Errorf("error reading file %q: %w", p, err)
 	}
 
-	expires := time.Unix(int64(binary.LittleEndian.Uint64(b[:8])), 0)
+	expires := time.Unix(int64(binary.LittleEndian.Uint64(b[:8])), 0) //nolint:gosec // safe conversion
 	if expires.Before(time.Now()) {
 		_ = os.Remove(p)
 		return nil, errCacheMiss
@@ -120,6 +127,7 @@ func (c *fileCache) Get(key string) ([]byte, error) {
 func (c *fileCache) Set(key string, val []byte, expiry time.Duration) error {
 	mu := c.pm.MutexAt(key)
 	mu.Lock()
+
 	defer mu.Unlock()
 
 	p := keyPath(c.path, key)
@@ -136,7 +144,7 @@ func (c *fileCache) Set(key string, val []byte, expiry time.Duration) error {
 		_ = f.Close()
 	}()
 
-	timestamp := uint64(time.Now().Add(expiry).Unix())
+	timestamp := uint64(time.Now().Add(expiry).Unix()) //nolint:gosec // safe conversion
 
 	var t [8]byte
 
@@ -201,7 +209,7 @@ func (m *pathMutex) MutexAt(path string) *fileLock {
 		return fl
 	}
 
-	fl := &fileLock{ref: 1}
+	fl := &fileLock{ref: 1} //nolint:exhaustruct // cleanup and mu set below
 	fl.cleanup = func() {
 		m.mu.Lock()
 		defer m.mu.Unlock()

@@ -1,4 +1,6 @@
 // Package plugin_simpleforcecache is a plugin to cache responses to disk.
+//
+//nolint:varnamelen // short variable names are acceptable
 package plugin_simpleforcecache
 
 import (
@@ -13,18 +15,18 @@ import (
 
 // Config configures the middleware.
 type Config struct {
-	Path              string   `json:"path" yaml:"path" toml:"path"`
-	MaxExpiry         int      `json:"maxExpiry" yaml:"maxExpiry" toml:"maxExpiry"`
-	Cleanup           int      `json:"cleanup" yaml:"cleanup" toml:"cleanup"`
-	AddStatusHeader   bool     `json:"addStatusHeader" yaml:"addStatusHeader" toml:"addStatusHeader"`
-	Force             bool     `json:"force" yaml:"force" toml:"force"`
-	CacheHeaders      []string `json:"cacheHeaders" yaml:"cacheHeaders" toml:"cacheHeaders"`
-	CachePathPrefixes []string `json:"cachePathPrefixes" yaml:"cachePathPrefixes" toml:"cachePathPrefixes"`
+	Path              string   `json:"path"              toml:"path"              yaml:"path"`
+	MaxExpiry         int      `json:"maxExpiry"         toml:"maxExpiry"         yaml:"maxExpiry"`
+	Cleanup           int      `json:"cleanup"           toml:"cleanup"           yaml:"cleanup"`
+	AddStatusHeader   bool     `json:"addStatusHeader"   toml:"addStatusHeader"   yaml:"addStatusHeader"`
+	Force             bool     `json:"force"             toml:"force"             yaml:"force"`
+	CacheHeaders      []string `json:"cacheHeaders"      toml:"cacheHeaders"      yaml:"cacheHeaders"`
+	CachePathPrefixes []string `json:"cachePathPrefixes" toml:"cachePathPrefixes" yaml:"cachePathPrefixes"`
 }
 
 // CreateConfig returns a config instance.
 func CreateConfig() *Config {
-	return &Config{
+	return &Config{ //nolint:exhaustruct // zero values are intentional defaults
 		MaxExpiry:       int((5 * time.Minute).Seconds()),
 		Cleanup:         int((5 * time.Minute).Seconds()),
 		AddStatusHeader: true,
@@ -71,13 +73,21 @@ func New(_ context.Context, next http.Handler, cfg *Config, name string) (http.H
 }
 
 type cacheData struct {
-	Status  int
-	Headers map[string][]string
-	Body    []byte
+	Status  int                 `json:"status"`
+	Headers map[string][]string `json:"headers"`
+	Body    []byte              `json:"body"`
 }
 
 // ServeHTTP serves an HTTP request.
+//
+//nolint:gocyclo,funlen // complexity and length are acceptable for main handler
 func (m *cache) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// Skip caching if path doesn't match any configured prefix
+	if !m.matchesPathPrefix(r.URL.Path) {
+		m.next.ServeHTTP(w, r)
+		return
+	}
+
 	cs := cacheMissStatus
 
 	key := cacheKey(r, m.cfg.CacheHeaders)
@@ -95,11 +105,14 @@ func (m *cache) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					w.Header().Add(key, val)
 				}
 			}
+
 			if m.cfg.AddStatusHeader {
 				w.Header().Set(cacheHeader, cacheHitStatus)
 			}
+
 			w.WriteHeader(data.Status)
 			_, _ = w.Write(data.Body)
+
 			return
 		}
 	}
@@ -108,17 +121,28 @@ func (m *cache) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set(cacheHeader, cs)
 	}
 
-	rw := &responseWriter{ResponseWriter: w}
+	rw := &responseWriter{ResponseWriter: w} //nolint:exhaustruct // zero values are intentional
 	m.next.ServeHTTP(rw, r)
 
-	expiry, ok := m.cacheable(r, w, rw.status)
+	expiry, ok := m.cacheable(rw.status)
 	if !ok {
 		return
 	}
 
+	// Filter out hop-by-hop headers that should not be cached
+	headers := make(map[string][]string)
+
+	for key, vals := range w.Header() {
+		if key == "Transfer-Encoding" || key == "Connection" {
+			continue
+		}
+
+		headers[key] = vals
+	}
+
 	data := cacheData{
 		Status:  rw.status,
-		Headers: w.Header(),
+		Headers: headers,
 		Body:    rw.body,
 	}
 
@@ -127,18 +151,13 @@ func (m *cache) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error serializing cache item: %v", err)
 	}
 
-	if err = m.cache.Set(key, b, expiry); err != nil {
+	if err = m.cache.Set(key, b, expiry); err != nil { //nolint:noinlineerr // acceptable inline error
 		log.Printf("Error setting cache item: %v", err)
 	}
 }
 
-func (m *cache) cacheable(r *http.Request, w http.ResponseWriter, status int) (time.Duration, bool) {
+func (m *cache) cacheable(status int) (time.Duration, bool) {
 	if status != 200 {
-		return 0, false
-	}
-
-	// Check if path matches any configured prefix (case-insensitive)
-	if !m.matchesPathPrefix(r.URL.Path) {
 		return 0, false
 	}
 
@@ -172,6 +191,7 @@ func cacheKey(r *http.Request, cacheHeaders []string) string {
 	for _, headerName := range cacheHeaders {
 		// Canonicalize header name to ensure case-insensitive matching
 		canonicalName := http.CanonicalHeaderKey(headerName)
+
 		headerValue := r.Header.Get(canonicalName)
 		if headerValue != "" {
 			builder.WriteString("|")
@@ -186,6 +206,7 @@ func cacheKey(r *http.Request, cacheHeaders []string) string {
 
 type responseWriter struct {
 	http.ResponseWriter
+
 	status int
 	body   []byte
 }

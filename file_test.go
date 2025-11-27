@@ -1,3 +1,4 @@
+//nolint:exhaustruct,varnamelen // test files don't need to specify all struct fields or long names
 package plugin_simpleforcecache
 
 import (
@@ -120,6 +121,7 @@ func TestPathMutex(t *testing.T) {
 
 		mu := pm.MutexAt("sometestpath")
 		mu.Lock()
+
 		defer mu.Unlock()
 
 		atomic.AddUint32(&locked, 1)

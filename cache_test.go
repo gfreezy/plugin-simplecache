@@ -1,3 +1,4 @@
+//nolint:exhaustruct,varnamelen // test files don't need to specify all struct fields or long names
 package plugin_simpleforcecache
 
 import (
@@ -52,7 +53,7 @@ func TestNew(t *testing.T) {
 func TestCache_ServeHTTP(t *testing.T) {
 	dir := createTempDir(t)
 
-	next := func(rw http.ResponseWriter, req *http.Request) {
+	next := func(rw http.ResponseWriter, _ *http.Request) {
 		rw.Header().Set("Cache-Control", "max-age=20")
 		rw.WriteHeader(http.StatusOK)
 	}
@@ -86,8 +87,9 @@ func TestCache_ServeHTTP_WithHeaders(t *testing.T) {
 	dir := createTempDir(t)
 
 	callCount := 0
-	next := func(rw http.ResponseWriter, req *http.Request) {
+	next := func(rw http.ResponseWriter, _ *http.Request) {
 		callCount++
+
 		rw.WriteHeader(http.StatusOK)
 		_, _ = fmt.Fprintf(rw, "Response %d", callCount)
 	}
@@ -109,14 +111,18 @@ func TestCache_ServeHTTP_WithHeaders(t *testing.T) {
 	req1 := httptest.NewRequest(http.MethodGet, "http://localhost/test", nil)
 	req1.Header.Set("X-Custom-Header", "value1")
 	req1.Header.Set("Accept-Language", "en-US")
+
 	rw1 := httptest.NewRecorder()
 
 	c.ServeHTTP(rw1, req1)
 
-	if state := rw1.Header().Get("Cache-Status"); state != "miss" {
+	state := rw1.Header().Get("Cache-Status")
+	if state != "miss" {
 		t.Errorf("unexpected cache state: want \"miss\", got: %q", state)
 	}
-	if body := rw1.Body.String(); body != "Response 1" {
+
+	body := rw1.Body.String()
+	if body != "Response 1" {
 		t.Errorf("unexpected body: want \"Response 1\", got: %q", body)
 	}
 
@@ -124,14 +130,18 @@ func TestCache_ServeHTTP_WithHeaders(t *testing.T) {
 	req2 := httptest.NewRequest(http.MethodGet, "http://localhost/test", nil)
 	req2.Header.Set("X-Custom-Header", "value1")
 	req2.Header.Set("Accept-Language", "en-US")
+
 	rw2 := httptest.NewRecorder()
 
 	c.ServeHTTP(rw2, req2)
 
-	if state := rw2.Header().Get("Cache-Status"); state != "hit" {
+	state = rw2.Header().Get("Cache-Status")
+	if state != "hit" {
 		t.Errorf("unexpected cache state: want \"hit\", got: %q", state)
 	}
-	if body := rw2.Body.String(); body != "Response 1" {
+
+	body = rw2.Body.String()
+	if body != "Response 1" {
 		t.Errorf("unexpected body: want \"Response 1\", got: %q", body)
 	}
 
@@ -139,14 +149,18 @@ func TestCache_ServeHTTP_WithHeaders(t *testing.T) {
 	req3 := httptest.NewRequest(http.MethodGet, "http://localhost/test", nil)
 	req3.Header.Set("X-Custom-Header", "value2")
 	req3.Header.Set("Accept-Language", "en-US")
+
 	rw3 := httptest.NewRecorder()
 
 	c.ServeHTTP(rw3, req3)
 
-	if state := rw3.Header().Get("Cache-Status"); state != "miss" {
+	state = rw3.Header().Get("Cache-Status")
+	if state != "miss" {
 		t.Errorf("unexpected cache state: want \"miss\", got: %q", state)
 	}
-	if body := rw3.Body.String(); body != "Response 2" {
+
+	body = rw3.Body.String()
+	if body != "Response 2" {
 		t.Errorf("unexpected body: want \"Response 2\", got: %q", body)
 	}
 
@@ -154,14 +168,18 @@ func TestCache_ServeHTTP_WithHeaders(t *testing.T) {
 	req4 := httptest.NewRequest(http.MethodGet, "http://localhost/test", nil)
 	req4.Header.Set("X-Custom-Header", "value1")
 	req4.Header.Set("Accept-Language", "zh-CN")
+
 	rw4 := httptest.NewRecorder()
 
 	c.ServeHTTP(rw4, req4)
 
-	if state := rw4.Header().Get("Cache-Status"); state != "miss" {
+	state = rw4.Header().Get("Cache-Status")
+	if state != "miss" {
 		t.Errorf("unexpected cache state: want \"miss\", got: %q", state)
 	}
-	if body := rw4.Body.String(); body != "Response 3" {
+
+	body = rw4.Body.String()
+	if body != "Response 3" {
 		t.Errorf("unexpected body: want \"Response 3\", got: %q", body)
 	}
 }
@@ -170,8 +188,9 @@ func TestCache_PathPrefixes(t *testing.T) {
 	dir := createTempDir(t)
 
 	callCount := 0
-	next := func(rw http.ResponseWriter, req *http.Request) {
+	next := func(rw http.ResponseWriter, _ *http.Request) {
 		callCount++
+
 		rw.WriteHeader(http.StatusOK)
 		_, _ = fmt.Fprintf(rw, "Response %d", callCount)
 	}
@@ -191,39 +210,47 @@ func TestCache_PathPrefixes(t *testing.T) {
 
 	// Test 1: Request to /api/users should be cached
 	req1 := httptest.NewRequest(http.MethodGet, "http://localhost/api/users", nil)
+
 	rw1 := httptest.NewRecorder()
 	c.ServeHTTP(rw1, req1)
 
-	if state := rw1.Header().Get("Cache-Status"); state != "miss" {
+	state := rw1.Header().Get("Cache-Status")
+	if state != "miss" {
 		t.Errorf("unexpected cache state for /api/users: want \"miss\", got: %q", state)
 	}
 
 	// Test 2: Same request should be cached
 	req2 := httptest.NewRequest(http.MethodGet, "http://localhost/api/users", nil)
+
 	rw2 := httptest.NewRecorder()
 	c.ServeHTTP(rw2, req2)
 
-	if state := rw2.Header().Get("Cache-Status"); state != "hit" {
+	state = rw2.Header().Get("Cache-Status")
+	if state != "hit" {
 		t.Errorf("unexpected cache state for /api/users: want \"hit\", got: %q", state)
 	}
 
 	// Test 3: Request to /cache/data should be cached (case-insensitive)
 	req3 := httptest.NewRequest(http.MethodGet, "http://localhost/CACHE/data", nil)
+
 	rw3 := httptest.NewRecorder()
 	c.ServeHTTP(rw3, req3)
 
-	if state := rw3.Header().Get("Cache-Status"); state != "miss" {
+	state = rw3.Header().Get("Cache-Status")
+	if state != "miss" {
 		t.Errorf("unexpected cache state for /CACHE/data: want \"miss\", got: %q", state)
 	}
 
 	// Test 4: Request to /other/path should NOT be cached (no Cache-Status header in response)
 	oldCallCount := callCount
+
 	req4 := httptest.NewRequest(http.MethodGet, "http://localhost/other/path", nil)
+
 	rw4 := httptest.NewRecorder()
 	c.ServeHTTP(rw4, req4)
 
-	if state := rw4.Header().Get("Cache-Status"); state != "miss" {
-		t.Errorf("unexpected cache state for /other/path: want \"miss\", got: %q", state)
+	if state := rw4.Header().Get("Cache-Status"); state != "" {
+		t.Errorf("unexpected cache state for /other/path: want empty, got: %q", state)
 	}
 
 	// Make the same request again - should NOT be a cache hit
@@ -231,8 +258,8 @@ func TestCache_PathPrefixes(t *testing.T) {
 	rw5 := httptest.NewRecorder()
 	c.ServeHTTP(rw5, req5)
 
-	if state := rw5.Header().Get("Cache-Status"); state != "miss" {
-		t.Errorf("unexpected cache state for /other/path second call: want \"miss\", got: %q", state)
+	if state := rw5.Header().Get("Cache-Status"); state != "" {
+		t.Errorf("unexpected cache state for /other/path second call: want empty, got: %q", state)
 	}
 
 	if callCount-oldCallCount != 2 {
@@ -244,8 +271,9 @@ func TestCache_HeaderCaseInsensitive(t *testing.T) {
 	dir := createTempDir(t)
 
 	callCount := 0
-	next := func(rw http.ResponseWriter, req *http.Request) {
+	next := func(rw http.ResponseWriter, _ *http.Request) {
 		callCount++
+
 		rw.WriteHeader(http.StatusOK)
 		_, _ = fmt.Fprintf(rw, "Response %d", callCount)
 	}
@@ -266,22 +294,26 @@ func TestCache_HeaderCaseInsensitive(t *testing.T) {
 	// First request with Accept-Language (different case)
 	req1 := httptest.NewRequest(http.MethodGet, "http://localhost/test", nil)
 	req1.Header.Set("Accept-Language", "en-US")
+
 	rw1 := httptest.NewRecorder()
 
 	c.ServeHTTP(rw1, req1)
 
-	if state := rw1.Header().Get("Cache-Status"); state != "miss" {
+	state := rw1.Header().Get("Cache-Status")
+	if state != "miss" {
 		t.Errorf("unexpected cache state: want \"miss\", got: %q", state)
 	}
 
 	// Second request with ACCEPT-LANGUAGE (all uppercase) - should be a cache hit
 	req2 := httptest.NewRequest(http.MethodGet, "http://localhost/test", nil)
-	req2.Header.Set("ACCEPT-LANGUAGE", "en-US")
+	req2.Header.Set("Accept-Language", "en-US")
+
 	rw2 := httptest.NewRecorder()
 
 	c.ServeHTTP(rw2, req2)
 
-	if state := rw2.Header().Get("Cache-Status"); state != "hit" {
+	state = rw2.Header().Get("Cache-Status")
+	if state != "hit" {
 		t.Errorf("unexpected cache state: want \"hit\", got: %q (header key should be case-insensitive)", state)
 	}
 
@@ -290,19 +322,58 @@ func TestCache_HeaderCaseInsensitive(t *testing.T) {
 	}
 }
 
+func TestCache_TransferEncodingHeader(t *testing.T) {
+	dir := createTempDir(t)
+
+	next := func(rw http.ResponseWriter, _ *http.Request) {
+		rw.Header().Set("Transfer-Encoding", "chunked")
+		rw.Header().Set("Content-Type", "text/plain")
+		rw.WriteHeader(http.StatusOK)
+		_, _ = rw.Write([]byte("test response"))
+	}
+
+	cfg := &Config{
+		Path:            dir,
+		MaxExpiry:       10,
+		Cleanup:         20,
+		AddStatusHeader: true,
+	}
+
+	c, err := New(context.Background(), http.HandlerFunc(next), cfg, "simplecache")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// First request - cache miss
+	req1 := httptest.NewRequest(http.MethodGet, "http://localhost/test", nil)
+	rw1 := httptest.NewRecorder()
+	c.ServeHTTP(rw1, req1)
+
+	if state := rw1.Header().Get("Cache-Status"); state != "miss" {
+		t.Errorf("unexpected cache state: want \"miss\", got: %q", state)
+	}
+
+	// Second request - cache hit, Transfer-Encoding should NOT be present
+	req2 := httptest.NewRequest(http.MethodGet, "http://localhost/test", nil)
+	rw2 := httptest.NewRecorder()
+	c.ServeHTTP(rw2, req2)
+
+	if state := rw2.Header().Get("Cache-Status"); state != "hit" {
+		t.Errorf("unexpected cache state: want \"hit\", got: %q", state)
+	}
+
+	if te := rw2.Header().Get("Transfer-Encoding"); te != "" {
+		t.Errorf("Transfer-Encoding header should be filtered out from cached response, got: %q", te)
+	}
+
+	// Content-Type should still be present
+	if ct := rw2.Header().Get("Content-Type"); ct != "text/plain" {
+		t.Errorf("Content-Type header should be preserved, got: %q", ct)
+	}
+}
+
 func createTempDir(tb testing.TB) string {
 	tb.Helper()
 
-	dir, err := os.MkdirTemp("./", "example")
-	if err != nil {
-		tb.Fatal(err)
-	}
-
-	tb.Cleanup(func() {
-		if err = os.RemoveAll(dir); err != nil {
-			tb.Fatal(err)
-		}
-	})
-
-	return dir
+	return tb.TempDir()
 }
